@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import json
 import os
+from datetime import datetime  # <--- Importante para pegar o ano
 
 # Configurações Visuais
 ctk.set_appearance_mode("Dark")
@@ -8,41 +9,54 @@ ctk.set_default_color_theme("blue")
 
 ARQUIVO_DADOS = "dados_lixo.json"
 
-# --- JANELA DO RANKING (---
+# --- JANELA DO RANKING (O "Telão") ---
 class JanelaRanking(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("Classificação - VISUALIZAÇÃO")
         self.geometry("400x600")
         self.resizable(True, True)
+        
+        # Pega o ano atual automaticamente
+        ano_atual = datetime.now().year
 
+        # Título Grande
         self.lbl_titulo = ctk.CTkLabel(self, text="🏆 RANKING GERAL 🏆", font=("Arial", 28, "bold"), text_color="#FFD700")
-        self.lbl_titulo.pack(pady=20)
+        self.lbl_titulo.pack(pady=(20, 0)) # pady=(cima, baixo) - tirei o espaço de baixo para o ano ficar perto
+        
+        # Subtítulo com o ANO
+        self.lbl_ano = ctk.CTkLabel(self, text=f"Temporada {ano_atual}", font=("Arial", 16), text_color="gray")
+        self.lbl_ano.pack(pady=(0, 20))    # Espaço só embaixo agora
 
+        # Área de rolagem onde ficam os nomes
         self.scroll_frame = ctk.CTkScrollableFrame(self)
         self.scroll_frame.pack(pady=10, padx=20, expand=True, fill="both")
 
     def atualizar_tela(self, dados):
+        # 1. Limpa tudo que está na tela
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
+        # 2. Ordena os dados (Maior pontuação primeiro)
         ranking_ordenado = sorted(dados.items(), key=lambda item: item[1], reverse=True)
 
+        # 3. Recria a lista
         for i, (nome, pontos) in enumerate(ranking_ordenado):
+            # Define medalhas e cores
             emoji = f"{i+1}º"
             cor_texto = "white"
             tamanho_fonte = 20
             
             if i == 0: 
-                emoji = "1º"
+                emoji = "🥇"
                 cor_texto = "#FFD700" # Dourado
                 tamanho_fonte = 26
             elif i == 1: 
-                emoji = "2º"
+                emoji = "🥈"
                 cor_texto = "#C0C0C0" # Prata
                 tamanho_fonte = 24
             elif i == 2: 
-                emoji = "3º"
+                emoji = "🥉"
                 cor_texto = "#CD7F32" # Bronze
                 tamanho_fonte = 22
 
@@ -68,14 +82,16 @@ class AppAdmin(ctk.CTk):
         self.resizable(False, False)
 
         self.dados = self.carregar_dados()
-        self.janela_ranking = None
+        self.janela_ranking = None 
 
         # --- Layout do Admin ---
         ctk.CTkLabel(self, text="⚙️ Painel de Controle", font=("Arial", 20, "bold")).pack(pady=15)
 
+        # Botão para abrir/reabrir o Ranking
         self.btn_abrir_ranking = ctk.CTkButton(self, text="📺 Abrir Tela de Ranking", command=self.abrir_janela_ranking)
         self.btn_abrir_ranking.pack(pady=5)
 
+        # Área de Adicionar
         frame_add = ctk.CTkFrame(self)
         frame_add.pack(pady=15, padx=20, fill="x")
         
@@ -85,9 +101,11 @@ class AppAdmin(ctk.CTk):
         btn_add = ctk.CTkButton(frame_add, text="Cadastrar", width=80, command=self.adicionar_participante)
         btn_add.pack(side="right", padx=10)
 
+        # Lista de participantes para dar pontos
         self.scroll_admin = ctk.CTkScrollableFrame(self, label_text="Gerenciar Pontos")
         self.scroll_admin.pack(pady=10, padx=20, expand=True, fill="both")
 
+        # Inicialização
         self.atualizar_lista_admin()
         self.abrir_janela_ranking()
 
@@ -103,6 +121,7 @@ class AppAdmin(ctk.CTk):
     def salvar_dados(self):
         with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
             json.dump(self.dados, f, indent=4, ensure_ascii=False)
+        
         if self.janela_ranking is not None and self.janela_ranking.winfo_exists():
             self.janela_ranking.atualizar_tela(self.dados)
 
@@ -110,7 +129,7 @@ class AppAdmin(ctk.CTk):
         if self.janela_ranking is None or not self.janela_ranking.winfo_exists():
             self.janela_ranking = JanelaRanking(self)
             self.janela_ranking.atualizar_tela(self.dados)
-            self.janela_ranking.focus()
+            self.janela_ranking.focus() # Traz a janela para frente
         else:
             self.janela_ranking.focus()
 
@@ -133,9 +152,9 @@ class AppAdmin(ctk.CTk):
         self.atualizar_lista_admin()
 
     def atualizar_lista_admin(self):
-        # Atualiza a lista
         for widget in self.scroll_admin.winfo_children():
             widget.destroy()
+
         for nome in sorted(self.dados.keys()):
             pontos = self.dados[nome]
             
